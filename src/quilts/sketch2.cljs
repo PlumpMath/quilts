@@ -18,7 +18,7 @@
   {:pos pos
    :dir (rand TWO-PI)
    :size (+ 1.0 (rand 3.0))
-   :z 0.1})
+   :z (rand-between 0.2 0.5)})
 
 (defn create-planet [pos col]
   {:pos pos
@@ -101,9 +101,9 @@
                                         (- (/ (q/height) 2))])]
     (doseq [star (:stars state)]
       (draw-entity star cam-pos star-render))
-    (draw-entity (:ship state) cam-pos (fn [self] (q/rect 0 0 20 10)))
     (doseq [planet (:planets state)]
       (draw-entity planet cam-pos planet-render))
+    (draw-entity (:ship state) cam-pos (fn [self] (q/rect 0 0 20 10)))
     ))
 
 (defn run-sketch-2 []
