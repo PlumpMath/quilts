@@ -5,13 +5,23 @@
 (def universe-size 1000)
 (def TWO-PI (* 2 3.14))
 
+(defn ship-render [ship]
+  (q/fill 50 80 50)
+  (q/rect -2 0 5 14)
+  (q/fill 150 180 150)
+  (q/triangle 0 -10
+              25 0
+              0  10)
+  (q/fill 30 100 30)
+  (q/ellipse 8 0 8 8))
+
 (defn create-ship []
   {:pos [(/ universe-size 2) (/ universe-size 2)]
    :dir 0.0
    :dir-change 0.0
    :speed 1.0
    :z 1.0
-   :render-fn (fn [self] (q/rect 0 0 20 10))})
+   :render-fn ship-render})
 
 (defn rand-between [low high]
   (let [diff (- high low)]
@@ -31,15 +41,20 @@
 
 (defn smoke-render [smoke]
   (let [age (:age smoke)
-        size (/ 10.0 age)]
-    (q/fill 255)
+        size (max 0.0 (- 15.0 (* 5.0 age)))
+        [r g b] (:col smoke)]
+    (q/fill r g b 200)
     (q/ellipse 0 0 size size)))
 
-(defn create-smoke [pos]
-  {:pos pos
+(defn create-smoke [[x y]]
+  {:pos [(+ x (rand-between -3 3))
+         (+ y (rand-between -3 3))]
    :dir 0.0
    :age 0.0
    :z 1.0
+   :col [(rand-between 100 150)
+         (rand-between 50 100)
+         (rand-between 150 200)]
    :render-fn smoke-render})
 
 (defn planet-render [planet]
@@ -76,12 +91,12 @@
   (q/rect-mode :center)
   (q/frame-rate 30)
   {:ship (create-ship)
-   :smoke []
+   :smoke [(create-smoke [500 500])]
    :stars (concat (take 100 (repeatedly random-star))
                   (take 10 (repeatedly marie-star)))
    :planets [(create-planet [200 200] [200 255 255])
              (create-planet [-300 0] [255 50 50])
-             (create-planet [500 500] [50 250 150])]})
+             (create-planet [600 500] [50 250 150])]})
 
 (defn translate-v2 [[x y] [dx dy]]
   [(+ x dx) (+ y dy)])
@@ -107,11 +122,29 @@
         new-pos [(wrapped x) (wrapped y)]]
     (assoc ship :pos new-pos)))
 
+(defn emit-smoke [state]
+  (if (< 0.2 (rand))
+    (let [ship-pos (-> state :ship :pos)]
+      (update-in state [:smoke] conj (create-smoke ship-pos)))
+    state))
+
+(defn age-smoke [smoke]
+  (update-in smoke [:age] #(+ % 0.033)))
+
+(defn is-old? [smoke]
+  (< 3.0 (:age smoke)))
+
+(defn remove-old-smokes [smokes]
+  (remove is-old? smokes))
+
 (defn update [state]
   (-> state
       (update-in [:ship] rotate-ship)
       (update-in [:ship] move-ship)
       (update-in [:ship] wrap-ship)
+      emit-smoke
+      (update-in [:smoke] (fn [smokes] (map age-smoke smokes)))
+      (update-in [:smoke] remove-old-smokes)
       ))
 
 (defn faster [speed]
@@ -149,7 +182,9 @@
         (q/pop-matrix))))
 
 (defn draw [state]
-  (q/background (+ 50 (* (q/sin (/ (q/millis) 1000.0)) 50)) 100 140)
+  (q/background 30
+                (+ 150 (* (q/sin (/ (q/millis) 1000.0)) 50))
+                240)
   (q/no-stroke)
   (let [ship-pos (-> state :ship :pos)
         cam-pos (translate-v2 ship-pos [(- (/ (q/width) 2))
@@ -158,6 +193,8 @@
       (draw-entity star cam-pos))
     (doseq [planet (:planets state)]
       (draw-entity planet cam-pos))
+    (doseq [smoke (:smoke state)]
+      (draw-entity smoke cam-pos))
     (draw-entity (:ship state) cam-pos)
     (let [[x y] ship-pos]
       (q/text (str (int x) ", " (int y)) 20 20))
