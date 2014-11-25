@@ -33,21 +33,24 @@
   (let [size (:size planet)
         [r g b] (:color planet)]
     (q/fill r g b)
-    (let [step (/ TWO-PI 8)]
-      (doall (for [a (range 0 TWO-PI step)]
-               (q/triangle 0
-                           0
-                           (* size (q/cos a))
-                           (* size (q/sin a))
-                           (* size (q/cos (+ a step)))
-                           (* size (q/sin (+ a step)))))))))
+    (let [rs (:rs planet)
+          step (/ TWO-PI (count rs))]
+      (q/begin-shape)
+      (doall (for [[a s] (map #(vector %1 %2)
+                              (range 0 TWO-PI step)
+                              rs)]
+               (q/vertex (* size s (q/cos a))
+                         (* size s (q/sin a)))))
+      (q/end-shape))))
 
 (defn create-planet [pos col]
   {:pos pos
    :dir (rand TWO-PI)
    :size (+ 50.0 (rand 20.0))
    :color col
-   :z (rand-between 1.3 1.5)
+   :z 1.0
+   :rs (into [] (take (+ 5 (rand-int 5))
+                      (repeatedly (fn [] (rand-between 0.7 1.0)))))
    :render-fn planet-render})
 
 (defn random-star []
@@ -64,7 +67,7 @@
                   (take 10 (repeatedly marie-star)))
    :planets [(create-planet [200 200] [200 255 255])
              (create-planet [-300 0] [255 50 50])
-             (create-planet [600 500] [50 250 150])]})
+             (create-planet [500 500] [50 250 150])]})
 
 (defn translate-v2 [[x y] [dx dy]]
   [(+ x dx) (+ y dy)])
@@ -97,8 +100,8 @@
     (case k
       38 (update-in state [:ship :speed] faster)
       40 (update-in state [:ship :speed] slower)
-      37 (assoc-in state [:ship :dir-change] -0.05)
-      39 (assoc-in state [:ship :dir-change] 0.05)
+      37 (assoc-in state [:ship :dir-change] -0.15)
+      39 (assoc-in state [:ship :dir-change] 0.15)
       state)))
 
 (defn on-key-up [state]
@@ -130,6 +133,8 @@
     (doseq [planet (:planets state)]
       (draw-entity planet cam-pos))
     (draw-entity (:ship state) cam-pos)
+    (let [[x y] ship-pos]
+      (q/text (str (int x) ", " (int y)) 20 20))
     ))
 
 (defn run-sketch-2 []
