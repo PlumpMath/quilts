@@ -7,23 +7,40 @@
 (defn create-ship []
   {:pos [30 100]
    :dir 0.0
-   :speed 0.0
+   :speed 1.0
    :z 1.0})
+
+(defn rand-between [low high]
+  (let [diff (- high low)]
+    (+ low (rand diff))))
 
 (defn create-star [pos]
   {:pos pos
    :dir (rand TWO-PI)
-   :size (+ 5.0 (rand 20.0))
-   :z (+ 0.5 (rand 1.0))})
+   :size (+ 1.0 (rand 3.0))
+   :z 0.1})
+
+(defn create-planet [pos col]
+  {:pos pos
+   :dir (rand TWO-PI)
+   :size (+ 50.0 (rand 200.0))
+   :color col
+   :z (rand-between 1.3 1.5)})
 
 (defn random-star []
-  (create-star [(rand-int 200) (rand-int 200)]))
+  (create-star [(rand-int 1000) (rand-int 1000)]))
+
+(defn marie-star []
+  (create-star [(rand-between -50 10) (rand-between -50 10)]))
 
 (defn setup []
   (q/rect-mode :center)
   (q/frame-rate 30)
   {:ship (create-ship)
-   :stars (take 10 (repeatedly random-star))})
+   :stars (concat (take 100 (repeatedly random-star))
+                  (take 10 (repeatedly marie-star)))
+   :planets [(create-planet [200 200] [200 255 255])
+             (create-planet [-300 0] [255 50 50])]})
 
 (defn translate-v2 [[x y] [dx dy]]
   [(+ x dx) (+ y dy)])
@@ -39,10 +56,10 @@
   (update-in state [:ship] move-ship))
 
 (defn faster [speed]
-  (min 4.0 (+ speed 0.5)))
+  (min 10.0 (+ speed 0.5)))
 
 (defn slower [speed]
-  (max 0.5 (- speed 0.5)))
+  (max 1.0 (- speed 0.5)))
 
 (defn on-key [state]
   (when-let [k (q/key-code)]
@@ -70,15 +87,24 @@
     (q/fill 255)
     (q/rect 0 0 size size)))
 
+(defn planet-render [planet]
+  (let [size (:size planet)
+        [r g b] (:color planet)]
+    (q/fill r g b)
+    (q/ellipse 0 0 size size)))
+
 (defn draw [state]
   (q/background 50 100 140)
+  (q/no-stroke)
   (let [ship-pos (-> state :ship :pos)
         cam-pos (translate-v2 ship-pos [(- (/ (q/width) 2))
                                         (- (/ (q/height) 2))])]
-    (draw-entity (:ship state) cam-pos (fn [self] (q/rect 0 0 20 10)))
-    (q/no-stroke)
     (doseq [star (:stars state)]
-      (draw-entity star cam-pos star-render))))
+      (draw-entity star cam-pos star-render))
+    (draw-entity (:ship state) cam-pos (fn [self] (q/rect 0 0 20 10)))
+    (doseq [planet (:planets state)]
+      (draw-entity planet cam-pos planet-render))
+    ))
 
 (defn run-sketch-2 []
   (q/defsketch quilts
