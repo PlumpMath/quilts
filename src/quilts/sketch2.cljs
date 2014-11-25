@@ -29,6 +29,19 @@
    :z (rand-between 0.2 0.5)
    :render-fn star-render})
 
+(defn smoke-render [smoke]
+  (let [age (:age smoke)
+        size (/ 10.0 age)]
+    (q/fill 255)
+    (q/ellipse 0 0 size size)))
+
+(defn create-smoke [pos]
+  {:pos pos
+   :dir 0.0
+   :age 0.0
+   :z 1.0
+   :render-fn smoke-render})
+
 (defn planet-render [planet]
   (let [size (:size planet)
         [r g b] (:color planet)]
@@ -63,6 +76,7 @@
   (q/rect-mode :center)
   (q/frame-rate 30)
   {:ship (create-ship)
+   :smoke []
    :stars (concat (take 100 (repeatedly random-star))
                   (take 10 (repeatedly marie-star)))
    :planets [(create-planet [200 200] [200 255 255])
@@ -83,10 +97,22 @@
   (let [dir-change (:dir-change ship)]
     (update-in ship [:dir] #(+ % dir-change))))
 
+(defn wrapped [n]
+  (cond (< universe-size n) 0.0
+        (< n 0.0) universe-size
+        :else n))
+
+(defn wrap-ship [ship]
+  (let [[x y] (:pos ship)
+        new-pos [(wrapped x) (wrapped y)]]
+    (assoc ship :pos new-pos)))
+
 (defn update [state]
   (-> state
       (update-in [:ship] rotate-ship)
-      (update-in [:ship] move-ship)))
+      (update-in [:ship] move-ship)
+      (update-in [:ship] wrap-ship)
+      ))
 
 (defn faster [speed]
   (min 7.0 (+ speed 0.5)))
