@@ -2,36 +2,59 @@
   (:require [quil.core :as q :include-macros true]
             [quil.middleware :as m]))
 
+(def universe-size 1000)
 (def TWO-PI (* 2 3.14))
 
 (defn create-ship []
-  {:pos [30 100]
+  {:pos [(/ universe-size 2) (/ universe-size 2)]
    :dir 0.0
+   :dir-change 0.0
    :speed 1.0
-   :z 1.0})
+   :z 1.0
+   :render-fn (fn [self] (q/rect 0 0 20 10))})
 
 (defn rand-between [low high]
   (let [diff (- high low)]
     (+ low (rand diff))))
 
+(defn star-render [star]
+  (let [size (:size star)]
+    (q/fill 255)
+    (q/rect 0 0 size size)))
+
 (defn create-star [pos]
   {:pos pos
    :dir (rand TWO-PI)
    :size (+ 1.0 (rand 3.0))
-   :z (rand-between 0.2 0.5)})
+   :z (rand-between 0.2 0.5)
+   :render-fn star-render})
+
+(defn planet-render [planet]
+  (let [size (:size planet)
+        [r g b] (:color planet)]
+    (q/fill r g b)
+    (let [step (/ TWO-PI 8)]
+      (doall (for [a (range 0 TWO-PI step)]
+               (q/triangle 0
+                           0
+                           (* size (q/cos a))
+                           (* size (q/sin a))
+                           (* size (q/cos (+ a step)))
+                           (* size (q/sin (+ a step)))))))))
 
 (defn create-planet [pos col]
   {:pos pos
    :dir (rand TWO-PI)
-   :size (+ 50.0 (rand 200.0))
+   :size (+ 50.0 (rand 20.0))
    :color col
-   :z (rand-between 1.3 1.5)})
+   :z (rand-between 1.3 1.5)
+   :render-fn planet-render})
 
 (defn random-star []
-  (create-star [(rand-int 1000) (rand-int 1000)]))
+  (create-star [(rand universe-size) (rand universe-size)]))
 
 (defn marie-star []
-  (create-star [(rand-between -50 10) (rand-between -50 10)]))
+  (create-star [(rand-between 0 50) (rand-between 0 50)]))
 
 (defn setup []
   (q/rect-mode :center)
@@ -40,7 +63,8 @@
    :stars (concat (take 100 (repeatedly random-star))
                   (take 10 (repeatedly marie-star)))
    :planets [(create-planet [200 200] [200 255 255])
-             (create-planet [-300 0] [255 50 50])]})
+             (create-planet [-300 0] [255 50 50])
+             (create-planet [600 500] [50 250 150])]})
 
 (defn translate-v2 [[x y] [dx dy]]
   [(+ x dx) (+ y dy)])
@@ -52,29 +76,42 @@
         dy (* speed (q/sin dir))]
     (update-in ship [:pos] translate-v2 [dx dy])))
 
+(defn rotate-ship [ship]
+  (let [dir-change (:dir-change ship)]
+    (update-in ship [:dir] #(+ % dir-change))))
+
 (defn update [state]
-  (update-in state [:ship] move-ship))
+  (-> state
+      (update-in [:ship] rotate-ship)
+      (update-in [:ship] move-ship)))
 
 (defn faster [speed]
-  (min 10.0 (+ speed 0.5)))
+  (min 7.0 (+ speed 0.5)))
 
 (defn slower [speed]
-  (max 1.0 (- speed 0.5)))
+  (max 2.0 (- speed 0.5)))
 
-(defn on-key [state]
-  (when-let [k (q/key-code)]
+(defn on-key-down [state]
+  (let [k (q/key-code)]
     ;; (.log js/console (str k))
     (case k
       38 (update-in state [:ship :speed] faster)
       40 (update-in state [:ship :speed] slower)
-      37 (update-in state [:ship :dir] #(- % 0.1))
-      39 (update-in state [:ship :dir] #(+ % 0.1))
+      37 (assoc-in state [:ship :dir-change] -0.05)
+      39 (assoc-in state [:ship :dir-change] 0.05)
       state)))
 
-(defn draw-entity [entity [cam-x cam-y] render-fn]
-  (let [[x y] (:pos entity render-fn)
-        dir (:dir entity render-fn)
-        z (:z entity)]
+(defn on-key-up [state]
+  (case (q/key-code)
+    37 (assoc-in state [:ship :dir-change] 0)
+    39 (assoc-in state [:ship :dir-change] 0)
+    state))
+
+  (defn draw-entity [entity [cam-x cam-y]]
+  (let [[x y] (:pos entity)
+        dir (:dir entity)
+        z (:z entity)
+        render-fn (:render-fn entity)]
     (q/fill 0 0 0)
     (do (q/push-matrix)
         (q/translate (- x (* z cam-x)) (- y (* z cam-y)))
@@ -82,28 +119,17 @@
         (render-fn entity)
         (q/pop-matrix))))
 
-(defn star-render [star]
-  (let [size (:size star)]
-    (q/fill 255)
-    (q/rect 0 0 size size)))
-
-(defn planet-render [planet]
-  (let [size (:size planet)
-        [r g b] (:color planet)]
-    (q/fill r g b)
-    (q/ellipse 0 0 size size)))
-
 (defn draw [state]
-  (q/background 50 100 140)
+  (q/background (+ 50 (* (q/sin (/ (q/millis) 1000.0)) 50)) 100 140)
   (q/no-stroke)
   (let [ship-pos (-> state :ship :pos)
         cam-pos (translate-v2 ship-pos [(- (/ (q/width) 2))
                                         (- (/ (q/height) 2))])]
     (doseq [star (:stars state)]
-      (draw-entity star cam-pos star-render))
+      (draw-entity star cam-pos))
     (doseq [planet (:planets state)]
-      (draw-entity planet cam-pos planet-render))
-    (draw-entity (:ship state) cam-pos (fn [self] (q/rect 0 0 20 10)))
+      (draw-entity planet cam-pos))
+    (draw-entity (:ship state) cam-pos)
     ))
 
 (defn run-sketch-2 []
@@ -112,6 +138,8 @@
     :size [220 220]
     :setup setup
     :update update
-    :key-pressed on-key
+    :key-pressed on-key-down
+    :key-released on-key-up
     :draw draw
     :middleware [m/fun-mode]))
+
