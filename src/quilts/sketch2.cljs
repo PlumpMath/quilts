@@ -17,9 +17,9 @@
 
 (defn create-ship []
   {:pos [(/ universe-size 2) (/ universe-size 2)]
-   :dir 0.0
+   :dir -0.4
    :dir-change 0.0
-   :speed 1.0
+   :speed 0.5
    :z 1.0
    :render-fn ship-render})
 
@@ -41,7 +41,7 @@
 
 (defn smoke-render [smoke]
   (let [age (:age smoke)
-        size (max 0.0 (- 15.0 (* 5.0 age)))
+        size (max 0.0 (- 10.0 (* 5.0 age)))
         [r g b] (:col smoke)]
     (q/fill r g b 200)
     (q/ellipse 0 0 size size)))
@@ -52,9 +52,9 @@
    :dir 0.0
    :age 0.0
    :z 1.0
-   :col [(rand-between 100 150)
-         (rand-between 50 100)
-         (rand-between 150 200)]
+   :col [(rand-between 100 250)
+         (rand-between 100 250)
+         (rand-between 0 100)]
    :render-fn smoke-render})
 
 (defn planet-render [planet]
@@ -102,7 +102,7 @@
   [(+ x dx) (+ y dy)])
 
 (defn move-ship [ship]
-  (let [speed (:speed ship)
+  (let [speed (+ 2.0 (* 5.0 (:speed ship)))
         dir (:dir ship)
         dx (* speed (q/cos dir))
         dy (* speed (q/sin dir))]
@@ -123,10 +123,11 @@
     (assoc ship :pos new-pos)))
 
 (defn emit-smoke [state]
-  (if (< 0.2 (rand))
-    (let [ship-pos (-> state :ship :pos)]
-      (update-in state [:smoke] conj (create-smoke ship-pos)))
-    state))
+  (let [speed (-> state :ship :speed)]
+    (if (< (rand) (+ 0.2 speed))
+      (let [ship-pos (-> state :ship :pos)]
+        (update-in state [:smoke] conj (create-smoke ship-pos)))
+      state)))
 
 (defn age-smoke [smoke]
   (update-in smoke [:age] #(+ % 0.033)))
@@ -148,10 +149,10 @@
       ))
 
 (defn faster [speed]
-  (min 7.0 (+ speed 0.5)))
+  (min 1.0 (+ speed 0.5)))
 
 (defn slower [speed]
-  (max 2.0 (- speed 0.5)))
+  (max 0.0 (- speed 0.5)))
 
 (defn on-key-down [state]
   (let [k (q/key-code)]
@@ -181,10 +182,18 @@
         (render-fn entity)
         (q/pop-matrix))))
 
+(defn pulse [low high rate]
+  (let [diff (- high low)
+        half (/ diff 2)
+        mid (+ low half)
+        s (/ (q/millis) 1000.0)
+        x (q/sin (* s (/ 1.0 rate)))]
+    (+ mid (* x half))))
+
 (defn draw [state]
-  (q/background 30
-                (+ 150 (* (q/sin (/ (q/millis) 1000.0)) 50))
-                240)
+  (q/background (pulse 10 40  15.0)
+                (pulse 10 40 40.0)
+                (pulse 50 120 5.0 ))
   (q/no-stroke)
   (let [ship-pos (-> state :ship :pos)
         cam-pos (translate-v2 ship-pos [(- (/ (q/width) 2))
