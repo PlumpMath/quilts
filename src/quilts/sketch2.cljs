@@ -91,8 +91,8 @@
       (q/end-shape))))
 
 (defn generate-radiuses []
-  (into [] (take (+ 5 (rand-int 5))
-                 (repeatedly #(rand-between 0.7 1.0)))))
+  (into [] (take (+ 5 (rand-int 7))
+                 (repeatedly #(rand-between 0.5 1.0)))))
 
 (defn create-planet [pos color]
   {:pos pos
