@@ -45,3 +45,19 @@
       39 (set-ship-speed state [strength 0])
       state)))
 
+(defn wrapped [diff n]
+  (cond (< 200 diff) (+ n 400)
+        (< diff -200) (- n 400)
+        :else n))
+
+(defn wrap-star [ship star]
+  (let [[ship-x ship-y] (:pos ship)
+        [star-x star-y] (:pos star)
+        z (:z star)
+        [star-screen-x star-screen-y] [(- star-x (* z ship-x)) (- star-y (* z ship-y))]
+        dx (- ship-x star-x)
+        dy (- ship-y star-y)
+        new-pos [(wrapped dx star-x) (wrapped dy star-y)]]
+    ;(log "diff: " [(int dx) (int dy)] " , star " (:pos star) " -> " new-pos)
+    (assoc star :pos new-pos)))
+
