@@ -5,6 +5,14 @@
 (def universe-size 1000)
 (def TWO-PI (* 2 3.14))
 
+(defn pulse [low high rate]
+  (let [diff (- high low)
+        half (/ diff 2)
+        mid (+ low half)
+        s (/ (q/millis) 1000.0)
+        x (q/sin (* s (/ 1.0 rate)))]
+    (+ mid (* x half))))
+
 (defn ship-render [ship]
   (q/fill 50 80 50)
   (q/rect -2 0 5 14)
@@ -39,6 +47,12 @@
    :z (rand-between 0.2 0.5)
    :render-fn star-render})
 
+(defn random-star []
+  (create-star [(rand universe-size) (rand universe-size)]))
+
+(defn marie-star []
+  (create-star [(rand-between 0 50) (rand-between 0 50)]))
+
 (defn smoke-render [smoke]
   (let [age (:age smoke)
         size (max 0.0 (- 10.0 (* 5.0 age)))
@@ -52,8 +66,8 @@
    :dir 0.0
    :age 0.0
    :z 1.0
-   :col [(rand-between 100 250)
-         (rand-between 100 250)
+   :col [(rand-between 150 255)
+         (rand-between 100 200)
          (rand-between 0 100)]
    :render-fn smoke-render})
 
@@ -71,21 +85,19 @@
                          (* size s (q/sin a)))))
       (q/end-shape))))
 
-(defn create-planet [pos col]
+(defn create-planet [pos color]
   {:pos pos
    :dir (rand TWO-PI)
-   :size (+ 50.0 (rand 20.0))
-   :color col
+   :size (+ 50.0 (rand 50.0))
+   :color color
    :z 1.0
    :rs (into [] (take (+ 5 (rand-int 5))
                       (repeatedly (fn [] (rand-between 0.7 1.0)))))
    :render-fn planet-render})
 
-(defn random-star []
-  (create-star [(rand universe-size) (rand universe-size)]))
-
-(defn marie-star []
-  (create-star [(rand-between 0 50) (rand-between 0 50)]))
+(defn random-planet []
+  (create-planet [(rand-between -1000 1000) (rand-between -1000 1000)]
+                 [(rand-between 0 255) (rand-between 50 150) (rand-between 50 150)]))
 
 (defn setup []
   (q/rect-mode :center)
@@ -94,9 +106,11 @@
    :smoke [(create-smoke [500 500])]
    :stars (concat (take 100 (repeatedly random-star))
                   (take 10 (repeatedly marie-star)))
-   :planets [(create-planet [200 200] [200 255 255])
-             (create-planet [-300 0] [255 50 50])
-             (create-planet [600 500] [50 250 150])]})
+   :planets (take 10 (repeatedly random-planet))})
+
+;; [(create-planet [200 200] [200 255 255])
+;;  (create-planet [-300 0] [255 50 50])
+;;  (create-planet [600 500] [50 250 150])]
 
 (defn translate-v2 [[x y] [dx dy]]
   [(+ x dx) (+ y dy)])
@@ -112,15 +126,10 @@
   (let [dir-change (:dir-change ship)]
     (update-in ship [:dir] #(+ % dir-change))))
 
-(defn wrapped [n]
-  (cond (< universe-size n) 0.0
-        (< n 0.0) universe-size
-        :else n))
-
-(defn wrap-ship [ship]
-  (let [[x y] (:pos ship)
-        new-pos [(wrapped x) (wrapped y)]]
-    (assoc ship :pos new-pos)))
+(defn wiggle-ship [ship]
+  (let [speed (:speed ship)
+        a (+ 0.01 (* 0.02 speed))]
+    (update-in ship [:dir] #(+ % (pulse (- a) a 0.1)))))
 
 (defn emit-smoke [state]
   (let [speed (-> state :ship :speed)]
@@ -138,14 +147,28 @@
 (defn remove-old-smokes [smokes]
   (remove is-old? smokes))
 
+(defn wrapped [diff n]
+  (cond ;(< 500 diff) (- n 1000)
+        ;(< diff 500) (+ n 1000)
+        :else n))
+
+(defn wrap-star [ship star]
+  (let [[ship-x ship-y] (:pos ship)
+        [star-x star-y] (:pos star)
+        dx (- ship-x star-x)
+        dy (- ship-y star-y)
+        new-pos [(wrapped dx star-x) (wrapped dy star-y)]]
+    (assoc star :pos new-pos)))
+
 (defn update [state]
   (-> state
       (update-in [:ship] rotate-ship)
+      (update-in [:ship] wiggle-ship)
       (update-in [:ship] move-ship)
-      (update-in [:ship] wrap-ship)
       emit-smoke
       (update-in [:smoke] (fn [smokes] (map age-smoke smokes)))
       (update-in [:smoke] remove-old-smokes)
+      (update-in [:stars] (fn [stars] (map (partial wrap-star (:ship state)) stars)))
       ))
 
 (defn faster [speed]
@@ -182,18 +205,10 @@
         (render-fn entity)
         (q/pop-matrix))))
 
-(defn pulse [low high rate]
-  (let [diff (- high low)
-        half (/ diff 2)
-        mid (+ low half)
-        s (/ (q/millis) 1000.0)
-        x (q/sin (* s (/ 1.0 rate)))]
-    (+ mid (* x half))))
-
 (defn draw [state]
   (q/background (pulse 10 40  15.0)
-                (pulse 10 40 40.0)
-                (pulse 50 120 5.0 ))
+                (pulse 40 60 40.0)
+                (pulse 50 100 5.0 ))
   (q/no-stroke)
   (let [ship-pos (-> state :ship :pos)
         cam-pos (translate-v2 ship-pos [(- (/ (q/width) 2))
