@@ -2,6 +2,8 @@
   (:require [quil.core :as q :include-macros true]
             [quil.middleware :as m]))
 
+;; By Erik Svedäng, Nov 2014
+
 (def PI 3.14159)
 (def TWO-PI (* 2 PI))
 
@@ -130,7 +132,7 @@
 
 (defn wiggle-ship [ship]
   (let [speed (:speed ship)
-        a (+ 0.01 (* 0.02 speed))]
+        a (+ 0.01 (* 0.03 speed))]
     (update-in ship [:dir] #(+ % (pulse (- a) a 0.1)))))
 
 (defn drift-planet [planet]
