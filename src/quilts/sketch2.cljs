@@ -2,7 +2,8 @@
   (:require [quil.core :as q :include-macros true]
             [quil.middleware :as m]))
 
-(def TWO-PI (* 2 3.14))
+(def PI 3.14159)
+(def TWO-PI (* 2 PI))
 
 (defn log [& args]
   (.log js/console (apply str args)))
@@ -15,7 +16,18 @@
         x (q/sin (* s (/ 1.0 rate)))]
     (+ mid (* x half))))
 
-(defn ship-render [ship]
+(defn rand-between [low high]
+  (let [diff (- high low)]
+    (+ low (rand diff))))
+
+(defn rand-coord [size]
+  [(rand-between (- size) size)
+   (rand-between (- size) size)])
+
+(defn translate-v2 [[x y] [dx dy]]
+  [(+ x dx) (+ y dy)])
+
+(defn render-ship [ship]
   (q/fill 50 80 50)
   (q/rect -2 0 5 14)
   (q/fill 150 180 150)
@@ -29,13 +41,9 @@
    :dir-change 0.0
    :speed 0.1
    :z 1.0
-   :render-fn ship-render})
+   :render-fn render-ship})
 
-(defn rand-between [low high]
-  (let [diff (- high low)]
-    (+ low (rand diff))))
-
-(defn star-render [star]
+(defn render-star [star]
   (let [size (:size star)]
     (q/fill 255)
     (q/rect 0 0 size size)))
@@ -45,19 +53,12 @@
    :dir (rand TWO-PI)
    :size (+ 1.0 (rand 3.0))
    :z (rand-between 0.2 0.7)
-   :render-fn star-render})
-
-(defn rand-coord [size]
-  [(rand-between (- size) size)
-   (rand-between (- size) size)])
+   :render-fn render-star})
 
 (defn random-star []
   (create-star (rand-coord 1000)))
 
-(defn marie-star []
-  (create-star [(rand-between 0 50) (rand-between 0 50)]))
-
-(defn smoke-render [smoke]
+(defn render-smoke [smoke]
   (let [age (:age smoke)
         size (max 0.0 (- 10.0 (* 5.0 age)))
         [r g b] (:col smoke)]
@@ -73,9 +74,9 @@
    :col [(rand-between 150 255)
          (rand-between 100 200)
          (rand-between 0 100)]
-   :render-fn smoke-render})
+   :render-fn render-smoke})
 
-(defn planet-render [planet]
+(defn render-planet [planet]
   (let [size (:size planet)
         [r g b] (:color planet)]
     (q/fill r g b)
@@ -87,6 +88,10 @@
                          (* size radius (q/sin angle)))))
       (q/end-shape))))
 
+(defn generate-radiuses []
+  (into [] (take (+ 5 (rand-int 5))
+                 (repeatedly #(rand-between 0.7 1.0)))))
+
 (defn create-planet [pos color]
   {:pos pos
    :dir (rand TWO-PI)
@@ -95,9 +100,8 @@
    :drift [(rand-between -0.3 0.3) (rand-between -0.3 0.3)]
    :color color
    :z 1.0
-   :rs (into [] (take (+ 5 (rand-int 5))
-                      (repeatedly (fn [] (rand-between 0.7 1.0))))) ;; radiuses
-   :render-fn planet-render})
+   :rs (generate-radiuses)
+   :render-fn render-planet})
 
 (defn random-planet []
   (create-planet (rand-coord 1000)
@@ -109,15 +113,12 @@
   (q/rect-mode :center)
   (q/frame-rate 30)
   {:ship (create-ship)
-   :smoke [(create-smoke [500 500])]
-   :stars (concat (take 3000 (repeatedly random-star)) (take 10 (repeatedly marie-star)))
+   :smoke []
+   :stars (take 3000 (repeatedly random-star))
    :planets (take 50 (repeatedly random-planet))})
 
-(defn translate-v2 [[x y] [dx dy]]
-  [(+ x dx) (+ y dy)])
-
 (defn move-ship [ship]
-  (let [speed (+ 2.0 (* 5.0 (:speed ship)))
+  (let [speed (+ 1.0 (* 7.0 (:speed ship)))
         dir (:dir ship)
         dx (* speed (q/cos dir))
         dy (* speed (q/sin dir))]
@@ -161,18 +162,16 @@
       (update-in [:smoke] (fn [smokes] (map age-smoke smokes)))
       (update-in [:smoke] remove-old-smokes)
       (update-in [:planets] #(map auto-rotate %))
-      (update-in [:planets] #(map drift-planet %))
-      ))
+      (update-in [:planets] #(map drift-planet %))))
 
 (defn faster [speed]
-  (min 1.0 (+ speed 0.5)))
+  (min 1.0 (+ speed 0.25)))
 
 (defn slower [speed]
-  (max 0.0 (- speed 0.5)))
+  (max 0.0 (- speed 0.25)))
 
 (defn on-key-down [state]
   (let [k (q/key-code)]
-    (.log js/console (str k))
     (cond
      (or (= k 87) (= k 38)) (update-in state [:ship :speed] faster)
      (or (= k 83) (= k 40)) (update-in state [:ship :speed] slower)
@@ -220,7 +219,7 @@
     (doseq [smoke (:smoke state)]
       (draw-entity smoke cam-pos))
     (draw-entity (:ship state) cam-pos)
-    (let [[x y] ship-pos]
+    #_(let [[x y] ship-pos]
       (q/fill 255 20)
       (q/text (str (int x) " : " (int y)) 5 15))
     ))
