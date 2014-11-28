@@ -61,3 +61,4 @@
     ;(log "diff: " [(int dx) (int dy)] " , star " (:pos star) " -> " new-pos)
     (assoc star :pos new-pos)))
 
+
