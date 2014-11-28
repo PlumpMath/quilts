@@ -26,8 +26,8 @@
           next-t (* next-x 0.01)]
       (q/line x (calc-y t mid-y) next-x (calc-y next-t mid-y)))))
 
-(defn p []
-  (+ 10 (* 4 (q/sin (* 0.002 (q/millis))))))
+;; (defn p []
+;;   (+ 10 (* 4 (q/sin (* 0.002 (q/millis))))))
 
 (defn draw [state]
   (q/background 245)
