@@ -5,6 +5,7 @@
             [quilts.sketch2 :as s2]
             [quilts.sketch3 :as s3]
             [quilts.sketch4 :as s4]
-            [quilts.sketch5 :as s5]))
+            [quilts.sketch5 :as s5]
+            [quilts.sketch6 :as s6]))
 
-(s5/run-sketch-5)
+(s6/run-sketch-6)
