@@ -1,6 +1,6 @@
 ;; UNSTOPPABLE
 
-(ns quilts.sketch5
+(ns quilts.sketch6
   (:require [quil.core :as q :include-macros true]
             [quil.middleware :as m]))
 
@@ -48,7 +48,7 @@
 
 ;; (q/mouse-x)
 
-(defn run-sketch-5 []
+(defn run-sketch-6 []
   (q/defsketch quilts
     :host "quilts"
     :size [700 700]
