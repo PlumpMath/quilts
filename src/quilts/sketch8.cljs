@@ -1,6 +1,6 @@
 ;; EMERALD
 
-(ns quilts.sketch7
+(ns quilts.sketch8
   (:require [quil.core :as q :include-macros true]
             [quil.middleware :as m]))
 
@@ -52,7 +52,7 @@
                   (* outer-r (q/sin (+ skew2 a)))))
         ))))
 
-(defn run-sketch-7 []
+(defn run-sketch-8 []
   (q/defsketch quilts
     :host "quilts"
     :size [400 400]
