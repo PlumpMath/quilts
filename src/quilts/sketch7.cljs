@@ -1,4 +1,4 @@
-;; UNSTOPPABLE
+;; TRAIN WINDOW
 
 (ns quilts.sketch7
   (:require [quil.core :as q :include-macros true]
