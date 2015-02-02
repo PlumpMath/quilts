@@ -1,4 +1,4 @@
-;; EYE
+;; HYPER
 
 (ns quilts.sketch10
   (:require [quil.core :as q :include-macros true]
@@ -20,40 +20,50 @@
 
 (defn setup []
   (q/frame-rate 100)
-  (q/background 230)
+  (q/background 255)
   (q/rect-mode :center)
-  
+  {:r 0.0
+   :col 0}
   )
+
+;; {:pos [(* 0.5 (q/width)) (* 0.5 (q/height))]
+;;  :dir [(q/sin (q/millis)) (q/cos (q/millis))]}
+
+;; (defn add-pos [pos1 pos2]
+;;   (into [] (map + pos1 pos2)))
+
+;; (defn mul-pos [pos x]
+;;   (into [] (map * pos (repeat x))))
+
+(defn tick [state]
+  (update-in state [:r] #(+ % 5.0)))
+
+(defn flip [state]
+  {:r 0.0
+   :col (if (= 0 (:col state)) 255 0)})
 
 (defn update [state]
-  )
+  (if (< (:r state) 300)
+    (tick state)
+    (flip state)))
 
 (defn draw [state]
-  (q/no-stroke)
-  (q/background 230 200 250)
-  (q/stroke 255 50 100)
-  (let [w (q/width)
-        h (q/height)
-        hw (/ w 2)
-        hh (/ h 2)
-        step (pulse 50.0 5.0 5.0)]
-    (doseq [x (range 0 w step)]
-      (q/line x 0 0 (- h x)))
-    (doseq [x (range 0 w step)]
-      (q/line 0 x x h))
-    (doseq [x (range 0 w step)]
-      (q/line w x (- h x) h))
-    (doseq [x (range 0 w step)]
-      (q/line w (- w x) (- h x) 0))
-    (q/fill 255 50 100)
-    (q/no-stroke)
-    (q/ellipse hw hh (pulse 200 180 1.5) (pulse 180 200 1.5))
-    ))
+  (q/stroke (:col state))
+  (let [hw (* 0.5 (q/width))
+        hh (* 0.5 (q/height))]
+    (doseq [x (range 0 50)]
+      (let [rand-ang (q/random 0 TWO-PI)
+            r (:r state)]
+        (q/line hh
+                hw
+                (+ hh (* (q/sin rand-ang) r))
+                (+ hw (* (q/cos rand-ang) r))))))
+  )
 
 (defn run-sketch-10 []
   (q/defsketch quilts
     :host "quilts"
-    :size [500 500]
+    :size [400 400]
     :setup setup
     :update update
     :draw draw
