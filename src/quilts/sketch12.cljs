@@ -1,4 +1,4 @@
-;; 
+;; CHRISTMAS TREE
 
 (ns quilts.sketch12
   (:require [quil.core :as q :include-macros true]
