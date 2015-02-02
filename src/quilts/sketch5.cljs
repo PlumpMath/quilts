@@ -28,16 +28,25 @@
 (defn t []
   (* 0.001 (q/millis)))
 
+(def win-width 800)
+(def win-height 600)
+
+(def x-max (/ win-width 4))
+(def x-max-top (/ x-max 2))
+(def y-max (/ win-height 2))
+(def y-max-half (/ y-max 2))
+(def y-max-half-third (/ y-max-half 3))
+(def speed (* 0.5 (/ win-width 400)))
+
 (defn stem [base-x]
   (let [magic 0.01
         x (+ base-x
-             (pulse -100 100 1.0)
-             )
-        y (+ -300
-             (* 150 (q/sin (+ (* 1.0 (t)) (* magic base-x))))
-             (* 50 (q/sin (* 2 (t)))))]
+             (pulse (- x-max-top) x-max-top 1.0))
+        y (+ (- y-max)
+             (* y-max-half (q/sin (+ (* speed (t)) (* magic base-x))))
+             (* y-max-half-third (q/sin (* 2 (t)))))]
     (q/bezier base-x 0 base-x 0
-              0 -200 x y)))
+              0 (- x-max) x y)))
 
 (defn draw [state]
   (q/background (pulse 230 250 1.0))
@@ -49,14 +58,14 @@
         hw (/ w 2)
         hh (/ h 2)]
      (q/with-translation [hw h]
-       (doseq [x (range -200 200 2)]
+       (doseq [x (range (- x-max) x-max 2)]
          (stem x))))
   )
 
 (defn run-sketch-5 []
   (q/defsketch quilts
     :host "quilts"
-    :size [800 600]
+    :size [win-width win-height]
     :setup setup
     :update update
     :draw draw

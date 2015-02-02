@@ -15,5 +15,5 @@
             [quilts.sketch12 :as s12]
             [quilts.sketch13 :as s13]))
 
-(s10/run-sketch-10)
+(s5/run-sketch-5)
 
